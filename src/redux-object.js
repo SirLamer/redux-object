@@ -54,7 +54,7 @@ export default function build(reducer, objectName, id = null, providedOpts = {})
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {
       if (eager) {
-        options.parentTree = options.parentTree.splice();
+        options.parentTree = [].concat(options.parentTree);
         options.parentTree.push(objectName);
         ret[relationship] = buildRelationship(reducer, target, relationship, options);
       } else {
