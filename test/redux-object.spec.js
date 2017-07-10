@@ -205,6 +205,11 @@ describe('local eager loading', () => {
   it('does not cyclically load parent items in child relationships', () => {
     expect(object.daQuestion.posts[0]).to.be.null;
   });
+
+  it('should work with cycle dependencies', () => {
+    expect(object.text).to.be.equal('hello');
+    expect(object.daQuestion.posts[0].daQuestion.posts[0].text).to.be.equal('hello');
+  });
 });
 
 describe('remote lazy loading', () => {
@@ -271,5 +276,18 @@ describe('remote lazy loading', () => {
   it('should ignore remote lazy loading links', () => {
     const question = build(sourceWithData, 'question', 29, { eager: false, ignoreLinks: true });
     return expect(isEqual(question.movie, [])).to.be.true;
+  });
+});
+
+describe('Include object type', () => {
+  const local = Object.assign({}, json);
+  const object = build(local, 'post', 2620, { includeType: true });
+
+  it('should include object type on base', () => {
+    expect(object.type).to.be.equal('post');
+  });
+
+  it('should include object type on relationships', () => {
+    expect(object.daQuestion.type).to.be.equal('question');
   });
 });

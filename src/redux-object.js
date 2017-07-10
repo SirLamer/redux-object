@@ -1,5 +1,14 @@
 /* eslint no-use-before-define: [1, 'nofunc'] */
-function buildRelationship(reducer, target, relationship, options) {
+
+function uniqueId(objectName, id) {
+  if (!id) {
+    return null;
+  }
+
+  return `${objectName}${id}`;
+}
+
+function buildRelationship(reducer, target, relationship, options, cache) {
   const { ignoreLinks, parentTree } = options;
   const rel = target.relationships[relationship];
 
@@ -9,12 +18,12 @@ function buildRelationship(reducer, target, relationship, options) {
         if (parentTree.indexOf(child.type) !== -1) {
           return null;
         }
-        return build(reducer, child.type, child.id, options);
+        return build(reducer, child.type, child.id, options, cache);
       });
     } else if (rel.data === null || parentTree.indexOf(rel.data.type) !== -1) {
       return null;
     }
-    return build(reducer, rel.data.type, rel.data.id, options);
+    return build(reducer, rel.data.type, rel.data.id, options, cache);
   } else if (!ignoreLinks && rel.links) {
     throw new Error('Remote lazy loading is not supported (see: https://github.com/yury-dymov/json-api-normalizer/issues/2). To disable this error, include option \'ignoreLinks: true\' in the build function like so: build(reducer, type, id, { ignoreLinks: true })');
   }
@@ -23,10 +32,10 @@ function buildRelationship(reducer, target, relationship, options) {
 }
 
 
-export default function build(reducer, objectName, id = null, providedOpts = {}) {
-  const defOpts = { eager: false, ignoreLinks: false, parentTree: [] };
+export default function build(reducer, objectName, id = null, providedOpts = {}, cache = {}) {
+  const defOpts = { eager: false, ignoreLinks: false, parentTree: [], includeType: false };
   const options = Object.assign({}, defOpts, providedOpts);
-  const { eager } = options;
+  const { eager, includeType } = options;
 
   if (!reducer[objectName]) {
     return null;
@@ -34,10 +43,18 @@ export default function build(reducer, objectName, id = null, providedOpts = {})
 
   if (id === null || Array.isArray(id)) {
     const idList = id || Object.keys(reducer[objectName]);
-    return idList.map(e => build(reducer, objectName, e, options));
+
+    return idList.map(e => build(reducer, objectName, e, options, cache));
   }
 
   const ids = id.toString();
+  const uuid = uniqueId(objectName, ids);
+  const cachedObject = cache[uuid];
+
+  if (cachedObject) {
+    return cachedObject;
+  }
+
   const ret = {};
   const target = reducer[objectName][ids];
 
@@ -51,12 +68,18 @@ export default function build(reducer, objectName, id = null, providedOpts = {})
 
   Object.keys(target.attributes).forEach((key) => { ret[key] = target.attributes[key]; });
 
+  if (includeType && !ret.type) {
+    ret.type = objectName;
+  }
+
+  cache[uuid] = ret;
+
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {
       if (eager) {
         options.parentTree = [].concat(options.parentTree);
         options.parentTree.push(objectName);
-        ret[relationship] = buildRelationship(reducer, target, relationship, options);
+        ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
       } else {
         Object.defineProperty(
           ret,
@@ -69,7 +92,7 @@ export default function build(reducer, objectName, id = null, providedOpts = {})
                 return ret[field];
               }
 
-              ret[field] = buildRelationship(reducer, target, relationship, options);
+              ret[field] = buildRelationship(reducer, target, relationship, options, cache);
 
               return ret[field];
             },
