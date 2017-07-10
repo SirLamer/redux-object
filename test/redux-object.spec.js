@@ -205,11 +205,6 @@ describe('local eager loading', () => {
   it('does not cyclically load parent items in child relationships', () => {
     expect(object.daQuestion.posts[0]).to.be.null;
   });
-
-  it('should work with cycle dependencies', () => {
-    expect(object.text).to.be.equal('hello');
-    expect(object.daQuestion.posts[0].daQuestion.posts[0].text).to.be.equal('hello');
-  });
 });
 
 describe('remote lazy loading', () => {
