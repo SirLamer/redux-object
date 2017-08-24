@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import isEqual from 'lodash/isEqual';
+import isFunction from 'lodash/isFunction';
+import cloneDeep from 'lodash/cloneDeep';
 import build from '../dist/bundle';
 
 const json = {
@@ -21,6 +23,15 @@ const json = {
             id: "296",
             type: "question"
           }
+        },
+        missingAndPresent: {
+          data: [{
+            id: "295",
+            type: "question"
+          }, {
+            id: "296",
+            type: "question"
+          }]
         },
         liker: {
           data: [{
@@ -89,7 +100,7 @@ const json = {
 };
 
 describe('build single object', () => {
-  const local = Object.assign({}, json);
+  const local = cloneDeep(json);
   const object = build(local, 'post', 2620);
 
   it('attributes', () => {
@@ -139,8 +150,15 @@ describe('build single object', () => {
     expect(user).to.be.equal(null);
   });
 
-  it('missing relationship should be null', () => {
-    expect(object.missingRelationship).to.be.equal(null);
+  it('missing relationship should return the relationship object', () => {
+    expect(object.missingRelationship).to.deep.equal({ id: '296', type: 'question' });
+  });
+
+  it('missing array relationship should return the relationship data array', () => {
+    expect(object.missingAndPresent).to.deep.equal([
+      object.daQuestion,
+      { id: '296', type: 'question' }
+    ]);
   });
 
   it('object with no attributes still should be an object', () => {
@@ -152,7 +170,7 @@ describe('build single object', () => {
 });
 
 describe('build all objects in collection', () => {
-  const local = Object.assign({}, json);
+  const local = cloneDeep(json);
   const list = build(local, 'user');
 
   it('returns an array', () => {
@@ -169,7 +187,7 @@ describe('build all objects in collection', () => {
 });
 
 describe('build a specific list of objects in collection', () => {
-  const local = Object.assign({}, json);
+  const local = cloneDeep(json);
   const list = build(local, 'user', [2, 4]);
 
   it('returns an array', () => {
@@ -194,7 +212,7 @@ describe('build a specific list of objects in collection', () => {
 });
 
 describe('local eager loading', () => {
-  const local = Object.assign({}, json);
+  const local = cloneDeep(json);
   const object = build(local, 'post', 2620, { eager: true });
 
   it('does not use lazy loading', () => {
@@ -275,7 +293,7 @@ describe('remote lazy loading', () => {
 });
 
 describe('Include object type', () => {
-  const local = Object.assign({}, json);
+  const local = cloneDeep(json);
   const object = build(local, 'post', 2620, { includeType: true });
 
   it('should include object type on base', () => {
