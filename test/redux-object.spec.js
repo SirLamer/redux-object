@@ -51,7 +51,6 @@ const json = {
         author: {
           data: null
         }
-
       }
     }
   },
@@ -221,9 +220,8 @@ describe('local eager loading', () => {
     expect(object.daQuestion.text).to.be.equal('hello?');
   });
 
-  it('should work with cycle dependencies', () => {
-    expect(object.text).to.be.equal('hello');
-    expect(object.daQuestion.posts[0].daQuestion.posts[0].text).to.be.equal('hello');
+  it('does not cyclically load parent items in child relationships', () => {
+    expect(object.daQuestion.posts[0]).to.be.null;
   });
 });
 

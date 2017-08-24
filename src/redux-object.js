@@ -9,13 +9,20 @@ function uniqueId(objectName, id) {
 }
 
 function buildRelationship(reducer, target, relationship, options, cache) {
-  const { ignoreLinks } = options;
+  const { ignoreLinks, parentTree } = options;
   const rel = target.relationships[relationship];
 
   if (typeof rel.data !== 'undefined') {
     if (Array.isArray(rel.data)) {
       return rel.data.map(child => build(reducer, child.type, child.id, options, cache) || child);
     } else if (rel.data === null) {
+      return rel.data.map((child) => {
+        if (parentTree.indexOf(child.type) !== -1) {
+          return null;
+        }
+        return build(reducer, child.type, child.id, options, cache) || child;
+      });
+    } else if (rel.data === null || parentTree.indexOf(rel.data.type) !== -1) {
       return null;
     }
     return build(reducer, rel.data.type, rel.data.id, options, cache) || rel.data;
@@ -28,7 +35,7 @@ function buildRelationship(reducer, target, relationship, options, cache) {
 
 
 export default function build(reducer, objectName, id = null, providedOpts = {}, cache = {}) {
-  const defOpts = { eager: false, ignoreLinks: false, includeType: false };
+  const defOpts = { eager: false, ignoreLinks: false, parentTree: [], includeType: false };
   const options = Object.assign({}, defOpts, providedOpts);
   const { eager, includeType } = options;
 
@@ -72,6 +79,8 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {
       if (eager) {
+        options.parentTree = [].concat(options.parentTree);
+        options.parentTree.push(objectName);
         ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
       } else {
         Object.defineProperty(
@@ -101,4 +110,3 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
 
   return ret;
 }
-
