@@ -14,8 +14,6 @@ function buildRelationship(reducer, target, relationship, options, cache) {
 
   if (typeof rel.data !== 'undefined') {
     if (Array.isArray(rel.data)) {
-      return rel.data.map(child => build(reducer, child.type, child.id, options, cache) || child);
-    } else if (rel.data === null) {
       return rel.data.map((child) => {
         if (parentTree.indexOf(child.type) !== -1) {
           return null;
