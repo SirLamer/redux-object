@@ -16,12 +16,12 @@ function buildRelationship(reducer, target, relationship, options, cache) {
     if (Array.isArray(rel.data)) {
       return rel.data.map((child) => {
         if (parentTree.indexOf(child.type) !== -1) {
-          return null;
+          return child;
         }
         return build(reducer, child.type, child.id, options, cache) || child;
       });
     } else if (rel.data === null || parentTree.indexOf(rel.data.type) !== -1) {
-      return null;
+      return rel.data;
     }
     return build(reducer, rel.data.type, rel.data.id, options, cache) || rel.data;
   } else if (!ignoreLinks && rel.links) {

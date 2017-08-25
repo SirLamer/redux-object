@@ -220,7 +220,7 @@ describe('local eager loading', () => {
   });
 
   it('does not cyclically load parent items in child relationships', () => {
-    expect(object.daQuestion.posts[0]).to.be.null;
+    expect(object.daQuestion.posts[0]).to.eql({ id: '2620', type: 'post' });
   });
 });
 
