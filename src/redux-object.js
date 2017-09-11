@@ -77,9 +77,10 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {
       if (eager) {
-        options.parentTree = [].concat(options.parentTree);
-        options.parentTree.push(objectName);
-        ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
+        const relParentTree = [].concat(options.parentTree);
+        relParentTree.push(objectName);
+        const relOptions = Object.assign({}, options, { parentTree: relParentTree });
+        ret[relationship] = buildRelationship(reducer, target, relationship, relOptions, cache);
       } else {
         Object.defineProperty(
           ret,
