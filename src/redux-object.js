@@ -49,10 +49,12 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
 
   const ids = id.toString();
   const uuid = uniqueId(objectName, ids);
-  const cachedObject = cache[uuid];
 
-  if (cachedObject) {
-    return cachedObject;
+  if (!eager) {
+    const cachedObject = cache[uuid];
+    if (cachedObject) {
+      return cachedObject;
+    }
   }
 
   const ret = {};
@@ -72,7 +74,9 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
     ret.type = objectName;
   }
 
-  cache[uuid] = ret;
+  if (!eager) {
+    cache[uuid] = ret;
+  }
 
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {

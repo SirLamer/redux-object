@@ -121,10 +121,12 @@ module.exports =
 
 	  var ids = id.toString();
 	  var uuid = uniqueId(objectName, ids);
-	  var cachedObject = cache[uuid];
 
-	  if (cachedObject) {
-	    return cachedObject;
+	  if (!eager) {
+	    var cachedObject = cache[uuid];
+	    if (cachedObject) {
+	      return cachedObject;
+	    }
 	  }
 
 	  var ret = {};
@@ -146,7 +148,9 @@ module.exports =
 	    ret.type = objectName;
 	  }
 
-	  cache[uuid] = ret;
+	  if (!eager) {
+	    cache[uuid] = ret;
+	  }
 
 	  if (target.relationships) {
 	    Object.keys(target.relationships).forEach(function (relationship) {
