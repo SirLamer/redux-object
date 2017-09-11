@@ -151,9 +151,9 @@ module.exports =
 	  if (target.relationships) {
 	    Object.keys(target.relationships).forEach(function (relationship) {
 	      if (eager) {
-	        var relParentTree = [].concat(options.parentTree);
-	        relParentTree.push(objectName);
-	        var relOptions = _extends({}, options, { parentTree: relParentTree });
+	        var relOptions = _extends({}, options);
+	        relOptions.parentTree = [].concat(options.parentTree);
+	        relOptions.parentTree.push(objectName);
 	        ret[relationship] = buildRelationship(reducer, target, relationship, relOptions, cache);
 	      } else {
 	        Object.defineProperty(ret, relationship, {
