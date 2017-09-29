@@ -11,6 +11,9 @@ const json = {
       attributes: {
         "text": "hello",
       },
+      meta: {
+        'like-count': 49
+      },
       relationships: {
         daQuestion: {
           data: {
@@ -106,7 +109,9 @@ describe('build single object', () => {
   it('attributes', () => {
     expect(object.text).to.be.equal('hello');
   });
-
+  it('resource meta', () => {
+    expect(object.meta['like-count']).to.be.equal(49);
+  });
   it('many relationships', () => {
     expect(object.liker.length).to.be.equal(3);
   });
@@ -286,10 +291,18 @@ describe('remote lazy loading', () => {
     return expect(isEqual(question.movie, [])).to.be.true;
   });
 
-  it('should ignore remote lazy loading links', () => {
-    const question = build(sourceWithData, 'question', 29, { eager: false, ignoreLinks: true });
-    return expect(isEqual(question.movie, [])).to.be.true;
+  describe('with ignoreLinks=true', () => {
+    it('should ignore remote lazy loading links', () => {
+      const question = build(sourceWithData, 'question', 29, { eager: false, ignoreLinks: true });
+      return expect(isEqual(question.movie, [])).to.be.true;
+    });
+
+    it('returns undefined if data was undefined', () => {
+      const question = build(source, 'question', 29, { eager: false, ignoreLinks: true });
+      return expect(isEqual(question.movie, undefined)).to.be.true;
+    });
   });
+
 });
 
 describe('Include object type', () => {
