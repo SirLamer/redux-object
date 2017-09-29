@@ -28,7 +28,7 @@ function buildRelationship(reducer, target, relationship, options, cache) {
     throw new Error('Remote lazy loading is not supported (see: https://github.com/yury-dymov/json-api-normalizer/issues/2). To disable this error, include option \'ignoreLinks: true\' in the build function like so: build(reducer, type, id, { ignoreLinks: true })');
   }
 
-  return [];
+  return undefined;
 }
 
 
@@ -69,6 +69,10 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
   }
 
   Object.keys(target.attributes).forEach((key) => { ret[key] = target.attributes[key]; });
+
+  if (target.meta) {
+    ret.meta = target.meta;
+  }  
 
   if (includeType && !ret.type) {
     ret.type = objectName;
