@@ -72,28 +72,38 @@ module.exports =
 	}
 
 	function buildRelationship(reducer, target, relationship, options, cache) {
-	  var ignoreLinks = options.ignoreLinks,
-	      parentTree = options.parentTree;
+	  var ignoreLinks = options.ignoreLinks;
 
 	  var rel = target.relationships[relationship];
 
 	  if (typeof rel.data !== 'undefined') {
 	    if (Array.isArray(rel.data)) {
 	      return rel.data.map(function (child) {
-	        if (parentTree.indexOf(child.type) !== -1) {
-	          return null;
-	        }
-	        return build(reducer, child.type, child.id, options, cache);
+	        return build(reducer, child.type, child.id, options, cache) || child;
 	      });
-	    } else if (rel.data === null || parentTree.indexOf(rel.data.type) !== -1) {
+	    } else if (rel.data === null) {
 	      return null;
 	    }
-	    return build(reducer, rel.data.type, rel.data.id, options, cache);
+	    return build(reducer, rel.data.type, rel.data.id, options, cache) || rel.data;
 	  } else if (!ignoreLinks && rel.links) {
 	    throw new Error('Remote lazy loading is not supported (see: https://github.com/yury-dymov/json-api-normalizer/issues/2). To disable this error, include option \'ignoreLinks: true\' in the build function like so: build(reducer, type, id, { ignoreLinks: true })');
 	  }
 
-	  return [];
+	  return undefined;
+	}
+
+	function relationshipMeta(ret, target, relationship) {
+	  if (target.relationships[relationship].meta) {
+	    if (!ret.meta) {
+	      ret.meta = {};
+	    }
+
+	    if (!ret.meta.relationships) {
+	      ret.meta.relationships = {};
+	    }
+
+	    ret.meta.relationships[relationship] = target.relationships[relationship].meta;
+	  }
 	}
 
 	function build(reducer, objectName) {
@@ -101,10 +111,11 @@ module.exports =
 	  var providedOpts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
 	  var cache = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
 
-	  var defOpts = { eager: false, ignoreLinks: false, parentTree: [], includeType: false };
+	  var defOpts = { eager: false, ignoreLinks: false, includeType: false, includeMeta: false };
 	  var options = _extends({}, defOpts, providedOpts);
 	  var eager = options.eager,
-	      includeType = options.includeType;
+	      includeType = options.includeType,
+	      includeMeta = options.includeMeta;
 
 
 	  if (!reducer[objectName]) {
@@ -142,6 +153,10 @@ module.exports =
 	    ret[key] = target.attributes[key];
 	  });
 
+	  if (includeMeta && target.meta) {
+	    ret.meta = target.meta;
+	  }
+
 	  if (includeType && !ret.type) {
 	    ret.type = objectName;
 	  }
@@ -151,11 +166,13 @@ module.exports =
 	  if (target.relationships) {
 	    Object.keys(target.relationships).forEach(function (relationship) {
 	      if (eager) {
-	        options.parentTree = [].concat(options.parentTree);
-	        options.parentTree.push(objectName);
 	        ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
+	        if (includeMeta) {
+	          relationshipMeta(ret, target, relationship);
+	        }
 	      } else {
 	        Object.defineProperty(ret, relationship, {
+	          enumerable: true,
 	          get: function get() {
 	            var field = '__' + relationship;
 
@@ -164,6 +181,9 @@ module.exports =
 	            }
 
 	            ret[field] = buildRelationship(reducer, target, relationship, options, cache);
+	            if (includeMeta) {
+	              relationshipMeta(ret, target, relationship);
+	            }
 
 	            return ret[field];
 	          }
