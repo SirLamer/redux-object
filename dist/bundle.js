@@ -72,17 +72,22 @@ module.exports =
 	}
 
 	function buildRelationship(reducer, target, relationship, options, cache) {
-	  var ignoreLinks = options.ignoreLinks;
+	  var ignoreLinks = options.ignoreLinks,
+	      allowCircular = options.allowCircular,
+	      parentTree = options.parentTree;
 
 	  var rel = target.relationships[relationship];
 
 	  if (typeof rel.data !== 'undefined') {
 	    if (Array.isArray(rel.data)) {
 	      return rel.data.map(function (child) {
+	        if (!allowCircular && parentTree.indexOf(child.type) !== -1) {
+	          return child;
+	        }
 	        return build(reducer, child.type, child.id, options, cache) || child;
 	      });
-	    } else if (rel.data === null) {
-	      return null;
+	    } else if (rel.data === null || !allowCircular && parentTree.indexOf(rel.data.type) !== -1) {
+	      return rel.data;
 	    }
 	    return build(reducer, rel.data.type, rel.data.id, options, cache) || rel.data;
 	  } else if (!ignoreLinks && rel.links) {
@@ -111,9 +116,17 @@ module.exports =
 	  var providedOpts = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {};
 	  var cache = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : {};
 
-	  var defOpts = { eager: false, ignoreLinks: false, includeType: false, includeMeta: false };
+	  var defOpts = {
+	    eager: false,
+	    ignoreLinks: false,
+	    parentTree: [],
+	    allowCircular: true,
+	    includeType: false,
+	    includeMeta: false
+	  };
 	  var options = _extends({}, defOpts, providedOpts);
 	  var eager = options.eager,
+	      allowCircular = options.allowCircular,
 	      includeType = options.includeType,
 	      includeMeta = options.includeMeta;
 
@@ -166,7 +179,15 @@ module.exports =
 	  if (target.relationships) {
 	    Object.keys(target.relationships).forEach(function (relationship) {
 	      if (eager) {
-	        ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
+	        var relOptions = null;
+	        if (allowCircular) {
+	          relOptions = options;
+	        } else {
+	          relOptions = _extends({}, options);
+	          relOptions.parentTree = [].concat(options.parentTree);
+	          relOptions.parentTree.push(objectName);
+	        }
+	        ret[relationship] = buildRelationship(reducer, target, relationship, relOptions, cache);
 	        if (includeMeta) {
 	          relationshipMeta(ret, target, relationship);
 	        }
