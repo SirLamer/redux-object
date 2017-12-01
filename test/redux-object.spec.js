@@ -11,7 +11,7 @@ const json = {
         "text": "hello",
       },
       meta: {
-        'like-count': 49
+        likeCount: 49
       },
       relationships: {
         daQuestion: {
@@ -27,25 +27,33 @@ const json = {
           }
         },
         missingAndPresent: {
-          data: [{
-            id: "295",
-            type: "question"
-          }, {
-            id: "296",
-            type: "question"
-          }]
+          data: [
+            {
+              id: "295",
+              type: "question"
+            }, {
+              id: "296",
+              type: "question"
+            }
+          ],
+          meta: {
+            createdAt: "2017-11-01",
+            updatedAt: "2017-11-27"
+          }
         },
         liker: {
-          data: [{
-            id: "1",
-            type: "user"
-          }, {
-            id: "2",
-            type: "user"
-          }, {
-            id: "3",
-            type: "user"
-          }]
+          data: [
+            {
+              id: "1",
+              type: "user"
+            }, {
+              id: "2",
+              type: "user"
+            }, {
+              id: "3",
+              type: "user"
+            }
+          ]
         },
         comments: {
           data: []
@@ -53,7 +61,6 @@ const json = {
         author: {
           data: null
         }
-
       }
     }
   },
@@ -108,10 +115,6 @@ describe('build single object', () => {
 
   it('attributes', () => {
     expect(object.text).to.be.equal('hello');
-  });
-
-  it('resource meta', () => {
-    expect(object.meta['like-count']).to.be.equal(49);
   });
 
   it('many relationships', () => {
@@ -339,4 +342,41 @@ describe('Include object type', () => {
   it('should include object type on relationships', () => {
     expect(object.daQuestion.type).to.be.equal('question');
   });
+});
+
+describe('metadata', () => {
+  const local = cloneDeep(json);
+  const withoutMeta = build(local, 'post', 2620);
+  const withMeta = build(local, 'post', 2620, {includeMeta: true});
+
+  it('resource meta', () => {
+    expect(withMeta.meta.likeCount).to.be.equal(49);
+  });
+
+  it('relationship meta', () => {
+    const temp = withMeta.missingAndPresent;
+    const updatedAt = withMeta.meta.relationships.missingAndPresent.updatedAt;
+    expect(updatedAt).to.equal('2017-11-27');
+  });
+
+  it('no resource meta', () => {
+    try {
+      withoutMeta.meta.likeCount;
+    } catch (er) {
+      return expect(er.message).not.to.be.null;
+    }
+
+    throw new Error('test failed');
+  });
+
+  it('no relationship meta', () => {
+    try {
+      withoutMeta.meta.relationships;
+    } catch (er) {
+      return expect(er.message).not.to.be.null;
+    }
+
+    throw new Error('test failed');
+  });
+
 });

@@ -36,6 +36,21 @@ function buildRelationship(reducer, target, relationship, options, cache) {
 }
 
 
+function relationshipMeta(ret, target, relationship) {
+  if (target.relationships[relationship].meta) {
+    if (!ret.meta) {
+      ret.meta = {};
+    }
+
+    if (!ret.meta.relationships) {
+      ret.meta.relationships = {};
+    }
+
+    ret.meta.relationships[relationship] = target.relationships[relationship].meta;
+  }
+}
+
+
 export default function build(reducer, objectName, id = null, providedOpts = {}, cache = {}) {
   const defOpts = {
     eager: false,
@@ -43,9 +58,10 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
     parentTree: [],
     allowCircular: true,
     includeType: false,
+    includeMeta: false
   };
   const options = Object.assign({}, defOpts, providedOpts);
-  const { eager, allowCircular, includeType } = options;
+  const { eager, allowCircular, includeType, includeMeta } = options;
 
   if (!reducer[objectName]) {
     return null;
@@ -78,7 +94,7 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
 
   Object.keys(target.attributes).forEach((key) => { ret[key] = target.attributes[key]; });
 
-  if (target.meta) {
+  if (includeMeta && target.meta) {
     ret.meta = target.meta;
   }
 
@@ -100,6 +116,9 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
           relOptions.parentTree.push(objectName);
         }
         ret[relationship] = buildRelationship(reducer, target, relationship, relOptions, cache);
+        if (includeMeta) {
+          relationshipMeta(ret, target, relationship);
+        }
       } else {
         Object.defineProperty(
           ret,
@@ -114,6 +133,9 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
               }
 
               ret[field] = buildRelationship(reducer, target, relationship, options, cache);
+              if (includeMeta) {
+                relationshipMeta(ret, target, relationship);
+              }
 
               return ret[field];
             },
@@ -129,4 +151,3 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
 
   return ret;
 }
-
