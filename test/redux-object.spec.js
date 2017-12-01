@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import isEqual from 'lodash/isEqual';
-import isFunction from 'lodash/isFunction';
 import cloneDeep from 'lodash/cloneDeep';
 import build from '../dist/bundle';
 
@@ -230,15 +229,27 @@ describe('build a specific list of objects in collection', () => {
 describe('local eager loading', () => {
   const local = cloneDeep(json);
   const object = build(local, 'post', 2620, { eager: true });
+  const noCircular = build(local, 'post', 2620, { eager: true, allowCircular: false });
 
   it('does not use lazy loading', () => {
     local.question[295].attributes.text = 'Goodbye.';
     expect(object.daQuestion.text).to.be.equal('hello?');
   });
 
-  it('should work with cycle dependencies', () => {
+  it('should allow circular references', () => {
     expect(object.text).to.be.equal('hello');
     expect(object.daQuestion.posts[0].daQuestion.posts[0].text).to.be.equal('hello');
+  });
+
+  it('should not allow circular references', () => {
+    expect(noCircular.text).to.be.equal('hello');
+    try {
+      const text = noCircular.daQuestion.posts[0].daQuestion.posts[0].text;
+    } catch (e) {
+      return expect(e.message).not.to.be.null;
+    }
+
+    throw new Error('test failed');
   });
 });
 
