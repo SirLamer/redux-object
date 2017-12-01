@@ -9,14 +9,23 @@ function uniqueId(objectName, id) {
 }
 
 function buildRelationship(reducer, target, relationship, options, cache) {
-  const { ignoreLinks } = options;
+  const {
+    ignoreLinks,
+    allowCircular,
+    parentTree,
+  } = options;
   const rel = target.relationships[relationship];
 
   if (typeof rel.data !== 'undefined') {
     if (Array.isArray(rel.data)) {
-      return rel.data.map(child => build(reducer, child.type, child.id, options, cache) || child);
-    } else if (rel.data === null) {
-      return null;
+      return rel.data.map((child) => {
+        if (!allowCircular && parentTree.indexOf(child.type) !== -1) {
+          return child;
+        }
+        return build(reducer, child.type, child.id, options, cache) || child;
+      });
+    } else if (rel.data === null || (!allowCircular && parentTree.indexOf(rel.data.type) !== -1)) {
+      return rel.data;
     }
     return build(reducer, rel.data.type, rel.data.id, options, cache) || rel.data;
   } else if (!ignoreLinks && rel.links) {
@@ -28,9 +37,15 @@ function buildRelationship(reducer, target, relationship, options, cache) {
 
 
 export default function build(reducer, objectName, id = null, providedOpts = {}, cache = {}) {
-  const defOpts = { eager: false, ignoreLinks: false, includeType: false };
+  const defOpts = {
+    eager: false,
+    ignoreLinks: false,
+    parentTree: [],
+    allowCircular: true,
+    includeType: false,
+  };
   const options = Object.assign({}, defOpts, providedOpts);
-  const { eager, includeType } = options;
+  const { eager, allowCircular, includeType } = options;
 
   if (!reducer[objectName]) {
     return null;
@@ -76,7 +91,15 @@ export default function build(reducer, objectName, id = null, providedOpts = {},
   if (target.relationships) {
     Object.keys(target.relationships).forEach((relationship) => {
       if (eager) {
-        ret[relationship] = buildRelationship(reducer, target, relationship, options, cache);
+        let relOptions = null;
+        if (allowCircular) {
+          relOptions = options;
+        } else {
+          relOptions = Object.assign({}, options);
+          relOptions.parentTree = [].concat(options.parentTree);
+          relOptions.parentTree.push(objectName);
+        }
+        ret[relationship] = buildRelationship(reducer, target, relationship, relOptions, cache);
       } else {
         Object.defineProperty(
           ret,
